@@ -1,69 +1,118 @@
 """
 Line13 — "My estate is building day by day it'll be huge"
-Effect: CONSTRUCTION RISE — skyscraper blocks stack upward floor by floor under pyfiglet text
+Effect: GRAND EMPIRE RISE — a sprawling skyline erupts from the ground,
+        towering skyscrapers with golden spires, cranes, glowing windows,
+        completion bursts, and a shimmering ground horizon.
 """
 import math
+import random
 import pyfiglet
 from common import C, LineAnimator, center_v
 
-FLOORS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-WINDOWS = ["▪", "□", "▫"]
+FLOORS  = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+WINDOWS = ["▪", "□", "▫", "◈"]
+_rng    = random.Random(7)
+
+# More buildings, taller, wider — a true empire skyline
+BUILDINGS = [
+    {"cx_off": -52, "w": 10, "max_h": 16, "speed": 1.1, "col": C.BLUE},
+    {"cx_off": -40, "w": 14, "max_h": 24, "speed": 1.4, "col": C.GOLD},
+    {"cx_off": -24, "w": 11, "max_h": 20, "speed": 1.2, "col": C.CYAN},
+    {"cx_off": -11, "w": 18, "max_h": 30, "speed": 1.6, "col": C.GOLD},  # centrepiece
+    {"cx_off":   9, "w": 13, "max_h": 26, "speed": 1.5, "col": C.MAGENTA},
+    {"cx_off":  24, "w": 11, "max_h": 21, "speed": 1.3, "col": C.CYAN},
+    {"cx_off":  37, "w": 15, "max_h": 25, "speed": 1.4, "col": C.GOLD},
+    {"cx_off":  54, "w":  9, "max_h": 15, "speed": 1.0, "col": C.BLUE},
+]
+
 
 class Line13(LineAnimator):
+    FPS = 60   # ← 60 fps
+
     def frame(self, text, color, t, tw, th):
-        rows = 35
-        grid = [[(" ", "")] * tw for _ in range(rows)]
-        
+        rows = 38
+        grid  = [[(" ", "")] * tw for _ in range(rows)]
+
         def set_grid(gy, gx, gchar, gcol):
             if 0 <= gy < rows and 0 <= gx < tw:
                 grid[gy][gx] = (gchar, gcol)
 
-        # Buildings grow
-        buildings = [
-            {"cx": tw // 2 - 35, "w": 12,  "max_h": 14,  "speed": 0.9},
-            {"cx": tw // 2 - 15,  "w": 10,  "max_h": 18, "speed": 1.1},
-            {"cx": tw // 2,      "w": 16,  "max_h": 22, "speed": 1.3},
-            {"cx": tw // 2 + 18, "w": 9,  "max_h": 16, "speed": 0.95},
-            {"cx": tw // 2 + 32, "w": 14,  "max_h": 12,  "speed": 0.8},
-        ]
+        cx = tw // 2
 
-        for b in buildings:
-            current_h = min(b["max_h"], int(t * b["speed"] * 8))
+        for b in BUILDINGS:
+            bx_start = cx + b["cx_off"]
+            current_h = min(b["max_h"], int(t * b["speed"] * 9))
+
             for row_i in range(current_h):
-                ry = rows - 1 - row_i
+                ry = rows - 2 - row_i          # leave ground row
                 for wx in range(b["w"]):
-                    bx = b["cx"] + wx
+                    bx = bx_start + wx
                     if 0 <= bx < tw and 0 <= ry < rows:
-                        # Window pattern
-                        is_window = (wx % 2 == 1) and (row_i % 2 == 1)
-                        ch        = "□" if is_window else "█"
-                        wc        = (C.YELLOW if int(t * 3 + wx + row_i) % 4 != 0
-                                     else C.DIM + C.GREY)
-                        set_grid(ry, bx, ch, wc if is_window else C.GOLD)
+                        is_window = (wx % 2 == 1) and (row_i % 3 != 0)
+                        if is_window:
+                            lit = int(t * 4 + wx * 3 + row_i * 2) % 5 != 0
+                            ch  = "□" if lit else "▪"
+                            wc  = C.YELLOW if lit else C.DIM + C.GREY
+                            set_grid(ry, bx, ch, wc)
+                        else:
+                            set_grid(ry, bx, "█", b["col"])
 
-            # Crane on top of tallest block being built
-            crane_y = rows - 1 - current_h
-            crane_x = b["cx"] + b["w"] // 2
-            if current_h > 0 and current_h < b["max_h"]:
-                if 0 <= crane_y - 1 < rows and 0 <= crane_x < tw:
+            # ── Spire on completed buildings ────────────────────────────────
+            if current_h >= b["max_h"]:
+                spire_x = bx_start + b["w"] // 2
+                spire_top = rows - 2 - current_h
+                for sp in range(1, 5):
+                    sy = spire_top - sp
+                    if 0 <= sy < rows and 0 <= spire_x < tw:
+                        ch = ["▲", "△", "╤", "╧"][sp - 1]
+                        set_grid(sy, spire_x, ch, C.GOLD + C.BOLD)
+                # Completion starburst — glowing crown
+                crown_y = spire_top - 5
+                for dx in range(-3, 4):
+                    if 0 <= crown_y < rows and 0 <= spire_x + dx < tw:
+                        pulse = int(t * 8) % 2
+                        set_grid(crown_y, spire_x + dx, "★" if dx == 0 else ("·" if pulse else "✦"),
+                                 C.GOLD if dx == 0 else C.YELLOW)
+
+            # ── Crane on buildings still rising ─────────────────────────────
+            elif current_h > 0:
+                crane_y = rows - 2 - current_h
+                crane_x = bx_start + b["w"] // 2
+                if 0 <= crane_y - 1 < rows:
                     set_grid(crane_y - 1, crane_x, "┬", C.ORANGE)
-                    for arm in range(1, 8):
-                        if 0 <= crane_x + arm < tw:
-                            set_grid(crane_y - 1, crane_x + arm, "─", C.ORANGE)
+                    for arm in range(1, 10):
+                        ax = crane_x + arm
+                        if 0 <= ax < tw:
+                            set_grid(crane_y - 1, ax, "─", C.ORANGE)
+                    # Dangling hook (animates)
+                    hook_arm = 6
+                    hx = crane_x + hook_arm
+                    hook_drop = int(t * 5) % 4
+                    for hd in range(hook_drop + 1):
+                        hy = crane_y - 1 + hd
+                        if 0 <= hy < rows and 0 <= hx < tw:
+                            set_grid(hy, hx, "│" if hd < hook_drop else "⌐", C.ORANGE)
 
-        # Chunks for Pyfiglet
+        # ── Glowing ground line ─────────────────────────────────────────────
+        ground_row = rows - 1
+        for gx in range(tw):
+            pulse = int(t * 6 + gx * 0.3) % 3
+            ch    = ["▀", "▄", "█"][pulse]
+            col   = [C.GOLD, C.ORANGE, C.YELLOW][pulse]
+            set_grid(ground_row, gx, ch, col)
+
+        # ── Pyfiglet lyrics ─────────────────────────────────────────────────
         chunks = [
             (0.0, ["MY ESTATE IS", "BUILDING"]),
             (1.0, ["DAY BY DAY"]),
-            (2.0, ["IT'LL BE", "HUGE"])
+            (2.0, ["IT'LL BE", "HUGE"]),
         ]
-        
         active_chunk = []
         for start_time, lines_text in reversed(chunks):
             if t >= start_time:
                 active_chunk = lines_text
                 break
-                
+
         rendered_lines = []
         for lt in active_chunk:
             rendered = pyfiglet.figlet_format(lt, font="small").strip("\n").split("\n")
@@ -73,19 +122,17 @@ class Line13(LineAnimator):
             rendered_lines.pop()
 
         text_height = len(rendered_lines)
-        start_y = 2
-
-        # Text at top over skyscrapers
+        start_y = 1
         for y, text_line_str in enumerate(rendered_lines):
             text_row = start_y + y
             if 0 <= text_row < rows:
                 target_pad = max(0, (tw - len(text_line_str)) // 2)
                 for i, ch in enumerate(text_line_str):
                     px = target_pad + i
-                    if 0 <= px < tw:
-                        if ch != " ":
-                            set_grid(text_row, px, ch, color)
+                    if 0 <= px < tw and ch != " ":
+                        set_grid(text_row, px, ch, color)
 
+        # ── Render ──────────────────────────────────────────────────────────
         top = center_v(rows + 4, th)
         out = [C.DIM + "·" * tw + C.RESET]
         out += [""] * top
@@ -93,10 +140,7 @@ class Line13(LineAnimator):
             s_row = ""
             for char, col in row:
                 if char != " ":
-                    if col:
-                        s_row += col + char + C.RESET
-                    else:
-                        s_row += char
+                    s_row += (col + char + C.RESET) if col else char
                 else:
                     s_row += " "
             out.append(s_row)

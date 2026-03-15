@@ -127,18 +127,18 @@ def run():
         show_intro()
 
         # ── VERSE 1
-        show_section_header("── VERSE 1 ──")
-        show_blank(0.3)
-        play_section(verse1.LINES)
+        # show_section_header("── VERSE 1 ──")
+        # show_blank(0.3)
+        # play_section(verse1.LINES)
 
-        show_blank(0.6)
+        # show_blank(0.6)
 
-        # ── VERSE 2
-        show_section_header("── VERSE 2 ──")
-        show_blank(0.3)
-        play_section(verse2.LINES)
+        # # ── VERSE 2
+        # show_section_header("── VERSE 2 ──")
+        # show_blank(0.3)
+        # play_section(verse2.LINES)
 
-        show_blank(0.6)
+        # show_blank(0.6)
 
         # ── VERSE 3
         show_section_header("── VERSE 3 ──")
